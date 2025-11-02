@@ -1,0 +1,55 @@
+services:
+  create-site:
+    image: ${CUSTOM_IMAGE:-frappe/erpnext}:${CUSTOM_TAG:-$ERPNEXT_VERSION}
+    entrypoint:
+      - /bin/bash
+      - -c
+    command:
+      - |
+        echo "Waiting for database and Redis..."
+        wait-for-it -t 120 ${DB_HOST:-mariadb-database}:${DB_PORT:-3306};
+        wait-for-it -t 120 ${REDIS_CACHE:-redis-cache}:6379;
+        wait-for-it -t 120 ${REDIS_QUEUE:-redis-queue}:6379;
+
+        bench new-site ${SITE} --mariadb-user-host-login-scope=% --admin-password=admin --db-root-password=${DB_PASSWORD};
+
+        # show the raw INSTALL_APPS string
+        echo "INSTALL_APPS: ${INSTALL_APPS}"
+
+        # Convert the space‑separated string into a Bash array
+        IFS=' ' read -r -a app_array <<< "${INSTALL_APPS}"
+        echo "Array of apps: $${app_array[@]}"
+
+        # Install each app
+        IFS=' ' read -r -a app_array <<< "${INSTALL_APPS}"
+        for app in "$${app_array[@]}"; do
+          echo "Installing $$app on ${SITE}..."
+          bench --site ${SITE} install-app "$$app"
+          echo "Installed $$app successfully"
+        done
+
+        echo "Installed apps $${app_array[@]} on site ${SITE}"
+
+        bench --site ${SITE} migrate
+
+        echo "Site creation finished successfully"
+    environment:
+      SITE: ${SITE:-site1.local}
+      DB_HOST: ${DB_HOST:-mariadb-database}
+      DB_PORT: ${DB_PORT:-3306}
+      DB_ROOT_PASSWORD: ${DB_PASSWORD:-dbpw}
+    depends_on:
+      - redis-cache
+      - redis-queue
+      - configurator
+    networks:
+      - bench-network
+      - mariadb-network
+    platform: linux/amd64
+    pull_policy: ${PULL_POLICY:-always}
+    restart: no
+    volumes:
+      - type: volume
+        source: sites
+        target: /home/frappe/frappe-bench/sites
+        volume: {}
