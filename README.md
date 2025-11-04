@@ -1,3 +1,8 @@
+# This script is still incomplete and under development
+There are expected to be issues and recommendations are welcome. 
+
+---
+
 # Deploy Frappe Benches Using Docker
 A shell script that simplifies the deployment of Dockerized Frappe benches by guiding users through configuration and Docker Compose file generation.
 
