@@ -11,6 +11,12 @@ deployment_dir="$2"
 overrides=(overrides/*)
 choices=()
 
+sanitize_name() {
+    local name="$1"
+    # Replace dots with underscores
+    echo "$name" | sed 's/\./_/g'
+}
+
 main() {
   while true; do
     echo -e "\nAvailable Docker Compose overrides:"
@@ -43,7 +49,9 @@ main() {
     [[ "${choices[i]}" == "x" ]] && args+=(-f "${overrides[i]}")
   done
 
-  docker compose --env-file "$deployment_dir/$bench_name.env" "${args[@]}" config > "$deployment_dir/$bench_name.yaml"
+  sanitized_bench_name=$(sanitize_name "$bench_name")
+
+  docker compose --project-name "$sanitized_bench_name" --env-file "$deployment_dir/$bench_name.env" "${args[@]}" config > "$deployment_dir/$bench_name.yaml"
 
   echo "Created Docker compose file at $deployment_dir/$bench_name.yaml"
 
