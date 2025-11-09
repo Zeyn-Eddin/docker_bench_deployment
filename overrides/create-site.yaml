@@ -31,6 +31,8 @@ services:
         echo "Installed apps $${app_array[@]} on site ${SITE}"
 
         bench --site ${SITE} migrate
+        
+        bench --site ${SITE} scheduler enable
 
         echo "Site creation finished successfully"
     environment:
